@@ -6,7 +6,14 @@ import json
 
 app = Flask(__name__)
 
-cache = redis.Redis(host='localhost', port=6379, db=0)
+# Khởi tạo Redis và kiểm tra kết nối
+try:
+    cache = redis.Redis(host='localhost', port=6379, db=0)
+    cache.ping()
+    print("Kết nối Redis thành công!")
+except redis.ConnectionError:
+    print("Không thể kết nối đến Redis. Vui lòng kiểm tra Redis server.")
+    exit(1)
 
 def get_db_connection():
     return pyodbc.connect(
@@ -22,6 +29,7 @@ def get_db_connection():
 def get_employee(employee_id):
     cache_key = f"employee_{employee_id}"
     cached_data = cache.get(cache_key)
+    print(f"Kiểm tra cache cho key {cache_key}: {cached_data}")
     if cached_data:
         print(f"Truy xuất từ cache: {cache_key}")
         return jsonify(json.loads(cached_data))
@@ -52,7 +60,8 @@ def get_employee(employee_id):
         'status': result[6]
     }
     
-    cache.setex(cache_key, 60, json.dumps(response))
+    cache.setex(cache_key, 300, json.dumps(response))  # Tăng thời gian hết hạn lên 5 phút
+    print(f"Lưu vào cache: {cache_key}")
     
     cursor.close()
     conn.close()
@@ -64,6 +73,7 @@ def get_employee(employee_id):
 def get_total_hours(employee_id, month):
     cache_key = f"total_hours_{employee_id}_{month}"
     cached_data = cache.get(cache_key)
+    print(f"Kiểm tra cache cho key {cache_key}: {cached_data}")
     if cached_data:
         print(f"Truy xuất từ cache: {cache_key}")
         return jsonify(json.loads(cached_data))
@@ -85,7 +95,8 @@ def get_total_hours(employee_id, month):
     
     total_hours = result[0] if result[0] is not None else 0
     response = {'employee_id': employee_id, 'month': month, 'total_hours': float(total_hours)}
-    cache.setex(cache_key, 60, json.dumps(response))
+    cache.setex(cache_key, 300, json.dumps(response))  # Tăng thời gian hết hạn
+    print(f"Lưu vào cache: {cache_key}")
     
     cursor.close()
     conn.close()
@@ -97,6 +108,7 @@ def get_total_hours(employee_id, month):
 def get_payroll(employee_id, month):
     cache_key = f"payroll_{employee_id}_{month}"
     cached_data = cache.get(cache_key)
+    print(f"Kiểm tra cache cho key {cache_key}: {cached_data}")
     if cached_data:
         print(f"Truy xuất từ cache: {cache_key}")
         return jsonify(json.loads(cached_data))
@@ -128,7 +140,8 @@ def get_payroll(employee_id, month):
         'total_pay': float(total_pay)
     }
     
-    cache.setex(cache_key, 60, json.dumps(response))
+    cache.setex(cache_key, 300, json.dumps(response))  # Tăng thời gian hết hạn
+    print(f"Lưu vào cache: {cache_key}")
     
     cursor.close()
     conn.close()
